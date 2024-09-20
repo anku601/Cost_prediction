@@ -1,56 +1,39 @@
 import pickle
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import logging
+from flask import Flask,request,jsonify,render_template
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
-# Load model and scaler (replace with your actual file paths)
-logging.info("importing pickle file")
-ridge_model = pickle.load(open('model/linreg.pkl', 'rb'))
-standard_scaler = pickle.load(open('model/scaler.pkl', 'rb'))
+application = Flask(__name__)
+app=application
 
-logging.info("imported pickle file done")
-# Initialize Flask app and enable CORS
-app = Flask(__name__)
-CORS(app)
+## import ridge regresor model and standard scaler pickle
+ridge_model=pickle.load(open('model/linreg.pkl','rb'))
+standard_scaler=pickle.load(open('model/scaler.pkl','rb'))
 
-@app.route('/predict', methods=['POST', 'OPTIONS'])  # Allow both POST and OPTIONS requests
-def predict_insurance_cost():
-    if request.method == 'OPTIONS':
-        return jsonify({'message': 'CORS pre-flight request successful'}), 200
+## Route for home page
+@app.route('/')
+def bin():
+    return render_template('index.html')
 
-    try:
-        # Data extraction and validation
-        data = request.json
+@app.route('/predictdata',methods=['GET','POST'])
+def predict_datapoint():
+    if request.method=='POST':
+        age=int(request.form.get('Age'))
+        bmi = float(request.form.get('BMI'))
+        children = int(request.form.get('CHILDREN'))
+        smoker = int(request.form.get('SMOKER'))
+        region = int(request.form.get('REGION'))
         
-        if not data:
-            return jsonify({'error': 'No data found in request'}), 400
 
-        age = int(data.get('age'))  # Handle potential missing values
-        bmi = float(data.get('bmi'))  # Assign default 0.0 for missing BMI
-        children = int(data.get('children'))
-        smoker = data.get('smoker').lower()  # Convert smoker to lowercase
-        print(age,bmi,children,smoker)
-        if smoker not in ('yes', 'no'):
-            return jsonify({'error': 'Invalid smoker value. Enter "Yes" or "No".'}), 400
+        new_data_scaled=standard_scaler.transform([[age,bmi,children,smoker,region]])
+        result=ridge_model.predict(new_data_scaled)
 
-        region = int(data.get('region'))
+        return render_template('index.html',result=result[0])
 
-        logging.info(f"Received data: age={age}, bmi={bmi}, children={children}, smoker={smoker}, region={region}")
+    else:
+        return render_template('index.html')
 
-        # Preprocess data using the loaded scaler if necessary
-        # ... (replace with your code for data preprocessing)
 
-        # Make prediction
-        predict = ridge_model.predict([[age, bmi, children,1 if smoker =='yes' else 0, region]]).tolist()
-
-        response = jsonify({
-            'estimated_cost': predict[0]
-        })
-        return response
-
-    except Exception as e:
-        logging.error(f"Error during prediction: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__=="__main__":
+    app.run(host="0.0.0.0")
