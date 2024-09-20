@@ -5,5 +5,6 @@ Health insurance cost prediction || Deployment ||Flask
 
 # Cose_prediction
 
-![image](https://github.com/user-attachments/assets/cd3c4065-0d67-444d-ad20-d244d76f3cb8)
+![image](https://github.com/user-attachments/assets/a169bd57-41bd-4954-87fc-2c027e96db77)
+
 
